@@ -47,12 +47,13 @@ class OrderControllerIT extends AbstractIntegrationSpec {
         def value = objectMapper.readValue(response, OrderSummary.class)
         value
         value.qty() == 2
-        value.total() == BigDecimal.valueOf(1.20)
+        value.total() == BigDecimal.valueOf(0.60)
         value.orderLines().size() == 1
         with(value.orderLines()[0]) {
             name() == "Apple"
             qty() == 2
-            price() == 1.20
+            price() == 0.60
+            total() == 1.20
         }
     }
 
@@ -82,20 +83,21 @@ class OrderControllerIT extends AbstractIntegrationSpec {
         def value = objectMapper.readValue(response, OrderSummary.class)
         value
         value.qty() == 5
-        value.total() == BigDecimal.valueOf(1.95)
+        value.total() == BigDecimal.valueOf(1.10)
         value.orderLines().size() == 2
         with(value.orderLines()[0]) {
             name() == "Apple"
             qty() == 2
-            price() == 1.20
+            price() == 0.60
+            total() == 1.20
         }
 
         with(value.orderLines()[1]) {
             name() == "Orange"
             qty() == 3
-            price() == 0.75
+            price() == 0.25
+            total() == 0.75
         }
-
     }
 
     def "create order with invalid product"() {

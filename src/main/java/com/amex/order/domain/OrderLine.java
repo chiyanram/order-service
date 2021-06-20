@@ -32,4 +32,6 @@ public class OrderLine {
   private int qty;
 
   private BigDecimal price;
+
+  private BigDecimal total;
 }

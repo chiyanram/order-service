@@ -30,6 +30,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.flywaydb:flyway-core")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("com.vladmihalcea:hibernate-types-55:2.12.0")
 
     implementation("org.springframework.cloud:spring-cloud-starter-sleuth")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")

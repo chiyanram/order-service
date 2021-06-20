@@ -3,3 +3,8 @@ spring:
     url: jdbc:tc:postgresql://localhost/order_service
     username: order
     password: SeCrEt1
+  jpa:
+    show-sql: true
+
+logging.level.org.hibernate.SQL: DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder: TRACE

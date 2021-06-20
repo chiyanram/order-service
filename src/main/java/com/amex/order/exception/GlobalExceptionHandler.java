@@ -30,6 +30,16 @@ public class GlobalExceptionHandler {
     return createHttpErrorInfo(HttpStatus.BAD_REQUEST, serverHttpRequest, badRequestException);
   }
 
+  @ExceptionHandler(ServiceExecutionException.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public ErrorInfo handleServiceException(
+      final ServiceExecutionException serviceExecutionException,
+      final HttpServletRequest serverHttpRequest) {
+
+    return createHttpErrorInfo(
+        HttpStatus.INTERNAL_SERVER_ERROR, serverHttpRequest, serviceExecutionException);
+  }
+
   private ErrorInfo createHttpErrorInfo(
       final HttpStatus status, final HttpServletRequest request, final Exception ex) {
 

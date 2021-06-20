@@ -23,6 +23,7 @@ public class DefaultOrderService implements OrderService {
   @NonNull private final ProductService productService;
   @NonNull private final OrderRepository orderRepository;
   @NonNull private final OrderLineRepository orderLineRepository;
+  @NonNull private final OfferService offerService;
 
   @Override
   public OrderSummary createOrder(@NonNull final CreateOrderRequest createOrderRequest) {
@@ -41,12 +42,22 @@ public class DefaultOrderService implements OrderService {
 
     final BigDecimal orderTotal =
         orderLines.stream()
-            .map(OrderLine::getPrice)
+            .map(OrderLine::getTotal)
             .reduce(BigDecimal::add)
             .orElse(BigDecimal.ZERO);
 
+    final ImmutableList<DiscountInfo> discountInfos = offerService.applyOffers(orderLines);
+
+    final BigDecimal discountPrice =
+        discountInfos.stream()
+            .map(DiscountInfo::discount)
+            .reduce(BigDecimal::add)
+            .orElse(BigDecimal.ZERO);
+
+    final BigDecimal afterDiscount = orderTotal.subtract(discountPrice);
+
     final Order order =
-        orderRepository.save(Order.builder().qty(totalItems).total(orderTotal).build());
+        orderRepository.save(Order.builder().qty(totalItems).total(afterDiscount).build());
 
     final ImmutableList<OrderLine> linesWithOrderId =
         orderLines.stream()
@@ -58,14 +69,18 @@ public class DefaultOrderService implements OrderService {
             .map(it -> buildOrderLineSummary(productsById, it))
             .collect(ImmutableList.toImmutableList());
 
-    return new OrderSummary(order.getId(), totalItems, orderTotal, orderLineSummaries);
+    return new OrderSummary(order.getId(), totalItems, afterDiscount, orderLineSummaries);
   }
 
   private OrderLineSummary buildOrderLineSummary(
       final ImmutableMap<Long, ProductInfo> productsById, final OrderLine it) {
 
     return new OrderLineSummary(
-        it.getId(), productsById.get(it.getProductId()).name(), it.getQty(), it.getPrice());
+        it.getId(),
+        productsById.get(it.getProductId()).name(),
+        it.getQty(),
+        it.getPrice(),
+        it.getTotal());
   }
 
   private OrderLine createOrderLine(
@@ -74,7 +89,8 @@ public class DefaultOrderService implements OrderService {
     return OrderLine.builder()
         .productId(productInfo.productId())
         .qty(orderLineRequest.qty())
-        .price(productInfo.price().multiply(BigDecimal.valueOf(orderLineRequest.qty())))
+        .price(productInfo.price())
+        .total(productInfo.price().multiply(BigDecimal.valueOf(orderLineRequest.qty())))
         .build();
   }
 }
