@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql://localhost/order_service
+    username: order
+    password: SeCrEt1
