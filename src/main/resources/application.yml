@@ -1,1 +1,13 @@
-
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/order_service
+    username: postgres
+    password: P@ssw0rd
+management:
+  endpoints:
+    web:
+      exposure:
+        include: 'info,health'
+  endpoint:
+    health:
+      show-details: always

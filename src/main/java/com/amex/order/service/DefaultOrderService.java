@@ -3,6 +3,7 @@ package com.amex.order.service;
 import com.amex.order.domain.Order;
 import com.amex.order.domain.OrderLine;
 import com.amex.order.dto.*;
+import com.amex.order.exception.NotFoundException;
 import com.amex.order.repository.OrderLineRepository;
 import com.amex.order.repository.OrderRepository;
 import com.google.common.collect.ImmutableList;
@@ -66,21 +67,43 @@ public class DefaultOrderService implements OrderService {
 
     final ImmutableList<OrderLineSummary> orderLineSummaries =
         orderLineRepository.saveAll(linesWithOrderId).stream()
-            .map(it -> buildOrderLineSummary(productsById, it))
+            .map(it -> buildOrderLineSummary(productsById.get(it.getProductId()), it))
             .collect(ImmutableList.toImmutableList());
 
     return new OrderSummary(order.getId(), totalItems, afterDiscount, orderLineSummaries);
   }
 
+  @Override
+  public ImmutableList<OrderSummary> fetchOrders() {
+
+    return orderRepository.findAll().stream()
+        .map(it -> new OrderSummary(it.getId(), it.getQty(), it.getTotal(), fetchLines(it.getId())))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  @Override
+  public OrderSummary orderById(final Long orderId) {
+    return orderRepository
+        .findById(orderId)
+        .map(it -> new OrderSummary(it.getId(), it.getQty(), it.getTotal(), fetchLines(it.getId())))
+        .orElseThrow(
+            () -> new NotFoundException(String.format("order not found for id: %s", orderId)));
+  }
+
+  private ImmutableList<OrderLineSummary> fetchLines(final Long orderId) {
+    return orderLineRepository.findByOrderId(orderId).stream()
+        .map(
+            it ->
+                new OrderLineSummary(
+                    it.getId(), it.getName(), it.getQty(), it.getPrice(), it.getTotal()))
+        .collect(ImmutableList.toImmutableList());
+  }
+
   private OrderLineSummary buildOrderLineSummary(
-      final ImmutableMap<Long, ProductInfo> productsById, final OrderLine it) {
+      final ProductInfo productInfo, final OrderLine it) {
 
     return new OrderLineSummary(
-        it.getId(),
-        productsById.get(it.getProductId()).name(),
-        it.getQty(),
-        it.getPrice(),
-        it.getTotal());
+        it.getId(), productInfo.name(), it.getQty(), it.getPrice(), it.getTotal());
   }
 
   private OrderLine createOrderLine(

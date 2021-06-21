@@ -1,11 +1,16 @@
 package com.amex.order.controller
 
 import com.amex.order.AbstractIntegrationSpec
+import com.amex.order.domain.Order
+import com.amex.order.domain.OrderLine
 import com.amex.order.dto.CreateOrderRequest
 import com.amex.order.dto.OrderLineRequest
 import com.amex.order.dto.OrderSummary
 import com.amex.order.exception.GlobalExceptionHandler
+import com.amex.order.repository.OrderLineRepository
+import com.amex.order.repository.OrderRepository
 import com.amex.order.service.ProductService
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.collect.ImmutableList
 import io.restassured.http.ContentType
@@ -21,6 +26,18 @@ class OrderControllerIT extends AbstractIntegrationSpec {
 
     @Autowired
     private ProductService productService
+
+    @Autowired
+    private OrderLineRepository lineRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+   
+    def cleanup() {
+        lineRepository.deleteAll()
+        orderRepository.deleteAll()
+    }
 
     def "order with single item"() {
         given:
@@ -127,6 +144,41 @@ class OrderControllerIT extends AbstractIntegrationSpec {
             message() == "product not found with id: -1"
             path() == "/orders"
             status() == 404
+        }
+    }
+
+    def "fetch all orders"() {
+        given:
+        def productDTO = productService.findByName("Apple")
+        def order = orderRepository.save(new Order(qty: 2, total: 2.40))
+        def orderLine = lineRepository.save(new OrderLine(orderId: order.id, productId: productDTO.productId(), qty: 2, price: 1.20, total: 2.40))
+
+        when:
+        def response = given()
+            .accept(ContentType.JSON)
+            .when()
+            .get("/orders")
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .contentType(ContentType.JSON)
+            .extract()
+            .response()
+            .asString()
+
+        then:
+        def orders = objectMapper.readValue(response, new TypeReference<ImmutableList<OrderSummary>>() {})
+        orders
+        orders.size() == 1
+        with(orders[0]) {
+            qty() == 2
+            total() == 2.40
+        }
+
+        orders[0].orderLines().size() == 1
+        with(orders[0].orderLines()[0]) {
+            qty() == 2
+            total() == 2.40
+            name() == "Apple"
         }
     }
 }
